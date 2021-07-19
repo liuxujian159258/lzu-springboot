@@ -1,0 +1,653 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="boot.dao.AdminDao">
+
+    <!-- 查询 -->
+    <select id="findByUserName" resultType="admin">
+        select * from admins where username = #{username} and password = #{password}
+    </select>
+
+    <!-- 更新管理员信息 -->
+    <update id="updateAdmin" parameterType="admin">
+        update admins set password = #{password}, email = #{email}, emailPassword = #{emailPassword} where username = #{username}
+    </update>
+
+    <!-- 管理员注册 -->
+    <insert id="addAdmin" parameterType="admin">
+        insert into admins (username, password, email, emailPassword) values (#{username}, #{password}, #{email}, #{emailPassword});
+    </insert>
+
+    <!-- 管理员注销 -->
+    <delete id="deleteAdmin" parameterType="admin">
+        delete from admins where username = #{username} and password = #{password}
+    </delete>
+
+    <!-- 获取所有用户信息 -->
+    <select id="adminStudentsGet" resultType="student">
+        select studentNumber, studentName, studentSex, studentCollege, studentClass, studentGrade, studentEmail, studentPhone
+        from student
+        where 1 = 1
+        <if test="studentNumber != null and studentNumber != ''">
+            and studentNumber like CONCAT('%', #{studentNumber}, '%')
+        </if>
+        <if test="studentName != null and studentName != ''">
+            and studentName like CONCAT('%', #{studentName}, '%')
+        </if>
+    </select>
+
+    <!-- 获取用户竞赛列表数据 -->
+    <select id="adminStudentsCompetitionsGet" resultMap="studentToScore">
+        select * from student s, score_student ss WHERE s.studentNumber = ss.studentNumber
+        <if test="studentNumber != null and studentNumber != ''">
+            and s.studentNumber like CONCAT('%', #{studentNumber}, '%')
+        </if>
+        <if test="studentName != null and studentName != ''">
+            and studentName like CONCAT('%', #{studentName}, '%')
+        </if>
+        order by ss.studentTime desc
+    </select>
+    <resultMap id="studentToScore" type="boot.vo.admin.StudentsVO">
+        <id property="studentNumber" column="studentNumber"/>
+        <result property="studentName" column="studentName"/>
+        <result property="studentSex" column="studentSex"/>
+        <result property="studentCollege" column="studentCollege"/>
+        <result property="studentClass" column="studentClass"/>
+        <result property="studentGrade" column="studentGrade"/>
+        <result property="studentEmail" column="studentEmail"/>
+        <result property="studentPhone" column="studentPhone"/>
+        <collection property="competitions" ofType="boot.vo.admin.CompetitionsVO">
+            <id property="competitionId" column="competitionId"/>
+            <id property="studentTime" column="studentTime"/>
+            <result property="competitionName" column="competitionName"/>
+            <result property="studentScore" column="studentScore"/>
+        </collection>
+    </resultMap>
+
+    <!-- 修改用户信息 -->
+    <update id="adminStudentsPut">
+        update student set studentPhone = #{studentPhone}, studentEmail = #{studentEmail} where studentNumber = #{studentNumber}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="adminStudentsDelete" parameterType="string">
+        delete from student where studentNumber = #{studentNumber}
+    </delete>
+
+    <!-- 用户信息下载 -->
+    <select id="adminStudentsDownload" resultMap="studentToScoreDownload">
+        select distinct * from student s, score_student ss WHERE s.studentNumber = ss.studentNumber
+        <if test="competitionName != null and competitionName != ''">
+            and ss.competitionName like CONCAT('%', #{competitionName}, '%')
+        </if>
+        <if test="studentTime != null">
+            and ss.studentTime = #{studentTime}
+        </if>
+    </select>
+    <resultMap id="studentToScoreDownload" type="boot.vo.admin.StudentsDownloadVO">
+        <id property="studentNumber" column="studentNumber"/>
+        <result property="studentName" column="studentName"/>
+        <result property="studentSex" column="studentSex"/>
+        <result property="studentCollege" column="studentCollege"/>
+        <result property="studentClass" column="studentClass"/>
+        <result property="studentGrade" column="studentGrade"/>
+        <result property="studentEmail" column="studentEmail"/>
+        <result property="studentPhone" column="studentPhone"/>
+        <result property="competitionId" column="competitionId"/>
+        <result property="competitionName" column="competitionName"/>
+        <result property="studentScore" column="studentScore"/>
+        <result property="studentTime" column="studentTime"/>
+    </resultMap>
+
+    <!-- 获取满足条件的团队竞赛信息列表 -->
+    <select id="adminTeamsCompetitionsGet" resultMap="teamScoreToStudent">
+        select t.teamId, t.teamName, t.teamCollege, st.competitionId, st.competitionName, st.teamScore,
+        st.teamTime, ts.studentNumber,ts.studentName,ts.isCaptain
+        from team t, score_team st, team_student ts
+        where t.teamId = st.teamId and t.teamId = ts.teamId and t.teamDismiss = 0
+        <if test="teamId != null">
+            and t.teamId = #{teamId}
+        </if>
+        <if test="teamName != null and teamName != ''">
+            and t.teamName like CONCAT('%', #{teamName}, '%')
+        </if>
+        order by st.teamTime desc
+    </select>
+    <resultMap id="teamScoreToStudent" type="boot.vo.admin.TeamsVO">
+        <id property="teamId" column="teamId"/>
+        <id property="teamTime" column="teamTime"/>
+        <result property="teamName" column="teamName"/>
+        <result property="teamCollege" column="teamCollege"/>
+        <result property="competitionId" column="competitionId"/>
+        <result property="CompetitionName" column="competitionName"/>
+        <result property="teamScore" column="teamScore"/>
+        <collection property="teamStudents" ofType="boot.vo.admin.TeamStudentsVO">
+            <id property="studentNumber" column="studentNumber"/>
+            <result property="studentName" column="studentName"/>
+            <result property="isCaptain" column="isCaptain"/>
+        </collection>
+    </resultMap>
+
+    <!-- 修改用户信息 -->
+    <update id="adminTeamsPut">
+        update team set teamName = #{teamName}, teamCollege = #{teamCollege} where teamId = #{teamId}
+    </update>
+
+    <!-- 删除团队 -->
+    <update id="adminTeamsDelete" parameterType="int">
+        update team set teamDismiss = 1 where teamId = #{teamId}
+    </update>
+
+    <!-- 团队信息下载 -->
+    <select id="adminTeamsDownload" resultMap="teamScoreToStudentDownload">
+        select t.teamId, t.teamName, t.teamCollege, st.competitionName, st.teamScore,
+        st.teamTime, ts.studentNumber,ts.studentName,ts.isCaptain
+        from team t, score_team st, team_student ts
+        where t.teamId = st.teamId and t.teamId = ts.teamId and t.teamDismiss = 0
+        <if test="competitionName !=null and competitionName != ''">
+            and st.competitionName like CONCAT('%', #{competitionName}, '%')
+        </if>
+        <if test="teamTime != null">
+            and st.teamTime = #{teamTime}
+        </if>
+    </select>
+    <resultMap id="teamScoreToStudentDownload" type="boot.vo.admin.TeamsDownloadVO">
+        <id property="teamId" column="teamId"/>
+        <result property="teamName" column="teamName"/>
+        <result property="teamCollege" column="teamCollege"/>
+        <result property="CompetitionName" column="competitionName"/>
+        <result property="teamScore" column="teamScore"/>
+        <result property="teamTime" column="teamTime"/>
+        <result property="studentNumber" column="studentNumber"/>
+        <result property="studentName" column="studentName"/>
+        <result property="isCaptain" column="isCaptain"/>
+    </resultMap>
+
+    <!-- 添加团队及其队员 -->
+    <insert id="adminTeamsPost" parameterType="team">
+        <selectKey keyProperty="teamId" resultType="int" order="AFTER">
+            select last_insert_id()
+        </selectKey>
+        insert into team (teamId, teamName, teamCollege, teamDismiss)
+        values (#{teamId}, #{teamName}, #{teamCollege}, #{teamDismiss})
+    </insert>
+
+    <!-- 更新团队人数加一 -->
+    <update id="adminTeamsUpdatePeople" parameterType="int">
+        update team set teamPeople= teamPeople+1  where teamId = #{teamId}
+    </update>
+
+    <!-- 更新团队人数减一 -->
+    <update id="adminTeamsUpdatePeopleSub" parameterType="int">
+        update team set teamPeople = teamPeople-1 where teamId = #{teamId}
+    </update>
+
+    <!-- 移出团队队员 -->
+    <delete id="adminTeamsStudentsDelete">
+        delete from team_student where teamId = #{teamId} and studentNumber = #{studentNumber}
+    </delete>
+
+    <!-- 获取未报名竞赛团队信息 -->
+    <select id="adminTeamsNotSignUpGet" resultMap="adminTeamsNotSignUpGetMap">
+        select distinct t.teamId, t.teamName, t.teamCollege, ts.studentNumber,ts.studentName,ts.isCaptain
+		from team t, team_student ts, score_team st
+		where  t.teamId = ts.teamId and t.teamDismiss = 0 and t.teamId not in (select teamId from score_team)
+        <if test="teamId != null">
+            and t.teamId = #{teamId}
+        </if>
+        <if test="teamName != null and teamName != ''">
+            and t.teamName like CONCAT('%', #{teamName}, '%')
+        </if>
+    </select>
+    <resultMap id="adminTeamsNotSignUpGetMap" type="boot.vo.admin.TeamsNotSignUpVO">
+        <id property="teamId" column="teamId"/>
+        <result property="teamName" column="teamName"/>
+        <result property="teamCollege" column="teamCollege"/>
+        <collection property="teamStudents" ofType="boot.vo.admin.TeamStudentsVO">
+            <id property="studentNumber" column="studentNumber"/>
+            <result property="studentName" column="studentName"/>
+            <result property="isCaptain" column="isCaptain"/>
+        </collection>
+    </resultMap>
+
+    <!-- 获取已经删除的团队信息 -->
+    <select id="adminTeamsDeleteGet" resultMap="teamScoreToStudent">
+        select t.teamId, t.teamName, t.teamCollege, st.competitionId, st.competitionName, st.teamScore,
+        st.teamTime, ts.studentNumber,ts.studentName,ts.isCaptain
+        from team t, score_team st, team_student ts
+        where t.teamId = st.teamId and t.teamId = ts.teamId and t.teamDismiss = 1
+        <if test="teamId != null">
+            and t.teamId = #{teamId}
+        </if>
+        <if test="teamName != null and teamName != ''">
+            and t.teamName like CONCAT('%', #{teamName}, '%')
+        </if>
+        order by st.teamTime desc
+    </select>
+
+    <!-- 永久删除团队信息 -->
+    <delete id="adminTeamsDeleteForeverDelete" parameterType="int">
+        delete from team where teamId = #{teamId}
+    </delete>
+    <!-- 永久删除团队成员信息 -->
+    <delete id="adminTeamsStudentsDeleteForeverDelete" parameterType="int">
+        delete from team_student where teamId = #{teamId}
+    </delete>
+    <!-- 永久删除团队竞赛信息 -->
+    <delete id="adminTeamsScoreTeamDeleteForeverDelete" parameterType="int">
+        delete from score_team where teamId = #{teamId}
+    </delete>
+
+    <!-- 取消删除团队信息 -->
+    <update id="adminTeamsDeleteCancelPut" parameterType="int">
+        update team set teamDismiss = 0 where teamId = #{teamId}
+    </update>
+
+    <!-- 获取所有竞赛信息列表 -->
+    <select id="adminCompetitionsGet" resultType="boot.vo.admin.CompetitionsHtmlVO">
+        select c.competitionId, c.competitionName, c.competitionType, c.competitionPeople, c.competitionDepartment, c.isDelete, ch.competitionHtml
+        from competition c left join competition_html ch
+        on c.competitionId = ch.competitionId
+    </select>
+
+    <!-- 根据竞赛编号获取竞赛信息 -->
+    <select id="adminCompetitionsCompetitionIdGet" parameterType="int" resultType="boot.vo.admin.CompetitionsHtmlVO">
+        select c.competitionId, c.competitionName, c.competitionType, c.competitionPeople, c.competitionDepartment, c.isDelete, ch.competitionHtml
+        from competition c, competition_html ch
+        where c.competitionId = ch.competitionId
+        and c.competitionId = #{competitionId}
+    </select>
+
+    <!-- 修改竞赛信息 -->
+    <update id="adminCompetitionsPut" parameterType="competition">
+        update competition set competitionName = #{competitionName}, competitionType = #{competitionType}, competitionPeople = #{competitionPeople}, competitionDepartment = #{competitionDepartment}, isDelete = #{isDelete}
+        where competitionId = #{competitionId}
+    </update>
+    <!--  更新单人竞赛成绩中的竞赛名称  -->
+    <update id="studentScoreCompetitionName">
+        update score_student set competitionName = #{competitionName}
+        where competitionId = #{competitionId}
+    </update>
+    <!--  更新团队竞赛中的竞赛名称  -->
+    <update id="teamScoreCompetitionName">
+        update score_team set competitionName = #{competitionName}
+        where competitionId = #{competitionId}
+    </update>
+    <!-- 修改竞赛网页信息 -->
+    <update id="adminCompetitionsHtmlPut" parameterType="competitionHtml">
+        update competition_html
+        set competitionHtml = #{competitionHtml}
+        where competitionId = #{competitionId}
+    </update>
+
+    <!-- 添加竞赛 -->
+    <insert id="adminCompetitionsPost" parameterType="competition">
+        <selectKey keyProperty="competitionId" resultType="int" order="AFTER">
+            select last_insert_id()
+        </selectKey>
+        insert into competition (competitionId, competitionName, competitionType, competitionPeople, competitionDepartment, isDelete)
+        values (#{competitionId}, #{competitionName},  #{competitionType}, #{competitionPeople}, #{competitionDepartment}, #{isDelete})
+    </insert>
+    <!-- 添加竞赛html -->
+    <insert id="adminCompetitionsHtmlPost" parameterType="competitionHtml">
+        insert into competition_html (competitionId, competitionHtml)
+        values (#{competitionId}, #{competitionHtml})
+    </insert>
+
+    <!-- 暂停竞赛 -->
+    <update id="adminCompetitionsDelete" parameterType="int">
+        update competition set isDelete = 1 where competitionId = #{competitionId}
+    </update>
+    <!--  恢复竞赛  -->
+    <update id="adminCompetitionsRecover" parameterType="int">
+        update competition set isDelete = 0 where competitionId = #{competitionId}
+    </update>
+
+    <!-- 修改管理员发送邮箱 -->
+    <update id="adminEmailsPut" parameterType="admin">
+        update admins set email = #{email}, emailPassword = #{emailPassword} where username = #{username}
+    </update>
+
+    <!-- 获取竞赛列表 -->
+    <select id="adminEmailsCompetitions" resultType="java.util.HashMap">
+        select competitionId, competitionName from competition where isDelete = 0
+    </select>
+
+    <!-- 获取竞赛类型 -->
+    <select id="adminEmailCompetitionType" parameterType="string" resultType="int">
+        select competitionType from competition where competitionName = #{competitionName}
+    </select>
+
+    <!-- 单人竞赛邮件群发 -->
+    <select id="adminEmailsOne" resultType="string">
+        select distinct s.studentEmail from student s, score_student st where s.studentNumber = st.studentNumber
+        <if test="competitionName != null and competitionName != ''">
+            and st.competitionName = #{competitionName}
+        </if>
+        <if test="studentTime != null">
+            and st.studentTime = #{studentTime}
+        </if>
+    </select>
+
+    <!-- 团队邮件群发 -->
+    <select id="adminEmailsTeam" resultType="string">
+        select distinct s.studentEmail from student s, score_team st, team_student ts where s.studentNumber = ts.studentNumber and st.teamId = ts.teamId
+        <if test="competitionName != null and competitionName != ''">
+        and st.competitionName = #{competitionName}
+        </if>
+        <if test="teamTime != null">
+            and st.teamTime = #{teamTime}
+        </if>
+    </select>
+
+    <!-- 获取团队成员邮箱 -->
+    <select id="adminEmailsTeamsGet" resultType="string" parameterType="int">
+        select distinct s.studentEmail
+        from student s, team_student ts
+        where s.studentNumber = ts.studentNumber and ts.teamId = #{teamId}
+    </select>
+
+    <!-- 获取竞赛报名邮件模板 -->
+    <select id="adminEmailsCompetitionEmailsGet" resultType="competitionEmail">
+        select * from competition_email
+    </select>
+
+    <!-- 添加竞赛报名邮件模板 -->
+    <insert id="adminEmailsCompetitionEmailsPost" parameterType="competitionEmail">
+        insert into competition_email (competitionId, competitionName, subject, text)
+        values (#{competitionId}, #{competitionName}, #{subject}, #{text})
+    </insert>
+
+    <!-- 修改竞赛报名邮件模板 -->
+    <update id="adminEmailsCompetitionEmailsPut" parameterType="competitionEmail">
+        update competition_email set subject = #{subject}, text = #{text}
+        where competitionId = #{competitionId} and competitionName = #{competitionName}
+    </update>
+
+    <!-- 获取所有用户成绩 -->
+    <select id="adminStudentsScoreGet" resultMap="studentToScoreGet">
+        select * from student s, score_student ss WHERE s.studentNumber = ss.studentNumber
+        <if test="studentNumber != null and studentNumber != ''">
+            and s.studentNumber like CONCAT('%', #{studentNumber}, '%')
+        </if>
+        <if test="studentName != null and studentName != ''">
+            and s.studentName like CONCAT('%', #{studentName}, '%')
+        </if>
+        <if test="competitionId != null">
+            and ss.competitionId = #{competitionId}
+        </if>
+        <if test="studentTime != null">
+            and ss.studentTime = #{studentTime}
+        </if>
+    </select>
+    <resultMap id="studentToScoreGet" type="boot.vo.admin.StudentsDownloadVO">
+        <id property="studentNumber" column="studentNumber"/>
+        <result property="studentName" column="studentName"/>
+        <result property="studentSex" column="studentSex"/>
+        <result property="studentCollege" column="studentCollege"/>
+        <result property="studentClass" column="studentClass"/>
+        <result property="studentGrade" column="studentGrade"/>
+        <result property="studentEmail" column="studentEmail"/>
+        <result property="studentPhone" column="studentPhone"/>
+        <result property="competitionId" column="competitionId"/>
+        <result property="competitionName" column="competitionName"/>
+        <result property="studentScore" column="studentScore"/>
+        <result property="studentTime" column="studentTime"/>
+    </resultMap>
+
+    <!-- 获取单人竞赛列表 -->
+    <select id="adminStudentsScoreCompetitionListGet" resultType="java.util.HashMap">
+        select competitionId, competitionName from competition where competitionType = 0 and isDelete = 0
+    </select>
+
+    <!-- 获取竞赛时间列表 -->
+    <select id="adminStudentsScoreCompetitionTimeListGet" resultType="java.util.HashMap">
+        select competitionTime from competition_time
+    </select>
+
+    <!-- 添加、修改用户成绩 -->
+    <update id="adminStudentsScorePut">
+        update score_student set studentScore = #{studentScore}
+        where studentNumber = #{studentNumber}
+        and competitionId = #{competitionId}
+        and studentTime = #{studentTime}
+    </update>
+
+    <!-- 获取所有满足条件的团队成绩 -->
+    <select id="adminTeamsScoresGet" resultType="boot.vo.admin.TeamsScoresVO">
+        select t.teamId, t.teamName, t.teamCollege, st.competitionId, st.competitionName, st.teamScore,
+        st.teamTime, ts.studentNumber as teamCaptainNumber, ts.studentName as teamCaptain
+        from team t, score_team st, team_student ts
+        where t.teamId = st.teamId and t.teamId = ts.teamId and t.teamDismiss = 0 and ts.isCaptain = 1
+        <if test="teamId != null">
+            and t.teamId = #{teamId}
+        </if>
+        <if test="teamName != null and teamName != ''">
+            and t.teamName like CONCAT('%', #{teamName}, '%')
+        </if>
+        <if test="competitionId != null">
+            and st.competitionId = #{competitionId}
+        </if>
+        <if test="teamTime != null">
+            and st.teamTime = #{teamTime}
+        </if>
+    </select>
+
+    <!-- 获取团队竞赛列表 -->
+    <select id="adminTeamsScoreCompetitionListGet" resultType="java.util.HashMap">
+        select competitionId, competitionName from competition where competitionType = 1 and isDelete = 0
+    </select>
+
+    <!-- 添加、修改团队成绩 -->
+    <update id="adminTeamsScoresPut">
+        update score_team set teamScore = #{teamScore} where teamId = #{teamId}
+        and competitionId = #{competitionId} and teamTime = #{teamTime}
+    </update>
+
+    <!-- 按竞赛分类返回数据(个人）-->
+    <select id="adminStatisticsCompetitionsNamePersonGet" resultType="java.util.HashMap">
+        select competitionName, count(competitionName) as number
+        from score_student
+        group by competitionName
+    </select>
+    <!-- 按竞赛分类返回数据（团队） -->
+    <select id="adminStatisticsCompetitionsNameTeamGet" resultType="java.util.HashMap">
+        select competitionName, count(competitionName) as number
+        from score_team
+        group by competitionName
+    </select>
+    <!-- 按竞赛分类返回数据（个人和团队） -->
+    <select id="adminStatisticsCompetitionsNameGet" resultType="java.util.HashMap">
+        select competitionName, count(competitionName) as number
+        from score_student
+        group by competitionName
+        union
+        select competitionName, count(competitionName) as number
+        from score_team
+        group by competitionName
+    </select>
+
+    <!-- 按竞赛时间返回数据(个人） -->
+    <select id="adminStatisticsCompetitionsTimePersonGet" resultType="java.util.HashMap">
+        select studentTime as competitionTime, count(studentTime) as number from score_student group by studentTime
+    </select>
+    <!-- 按竞赛时间返回数据（团队） -->
+    <select id="adminStatisticsCompetitionsTimeTeamGet" resultType="java.util.HashMap">
+        select teamTime as competitionTime, count(teamTime) as number from score_team group by teamTime
+    </select>
+    <!-- 按竞赛时间返回数据（个人和团队） -->
+    <select id="adminStatisticsCompetitionsTimeGet" resultType="java.util.HashMap">
+        select studentTime as competitionTime, count(studentTime) as number from score_student group by studentTime
+        union
+        select teamTime as competitionTime, count(teamTime) as number from score_team group by teamTime
+    </select>
+
+    <!-- 按竞赛和时间返回数据（个人） -->
+    <select id="adminStatisticsCompetitionsNameAndTimePersonGet" resultType="boot.vo.admin.StatisticsVO">
+        select studentTime as competitionTime, count(*) as number , competitionName from score_student group by studentTime, competitionName
+    </select>
+    <!-- 按竞赛和时间返回数据（团队） -->
+    <select id="adminStatisticsCompetitionsNameAndTimeTeamGet" resultType="boot.vo.admin.StatisticsVO">
+        select teamTime as competitionTime, count(*) as number , competitionName from score_team group by teamTime, competitionName
+    </select>
+    <!-- 按竞赛和时间返回数据（个人和团队） -->
+    <select id="adminStatisticsCompetitionsNameAndTimeGet" resultType="boot.vo.admin.StatisticsVO">
+        select studentTime as competitionTime, count(*) as number , competitionName from score_student group by studentTime, competitionName
+        union
+        select teamTime as competitionTime, count(*) as number , competitionName from score_team group by teamTime, competitionName
+    </select>
+
+    <!-- 获取管理员邮箱 -->
+    <select id="adminEmailsGet" parameterType="string" resultType="admin">
+        select email, emailPassword from admins where username = #{username}
+    </select>
+
+    <!-- 按性别返回数据（个人） -->
+    <select id="adminStatisticsSexPersonGet" resultType="java.util.HashMap">
+        select s.studentSex, COUNT(s.studentSex) as number
+        from student s, score_student st
+        where s.studentNumber = st.studentNumber GROUP BY s.studentSex
+    </select>
+    <!-- 按性别返回数据（团队） -->
+    <select id="adminStatisticsSexTeamGet" resultType="java.util.HashMap">
+        select s.studentSex,count(s.studentSex) as number
+        from student s, team_student ts, score_team st
+        where ts.teamId = st.teamId and ts.studentNumber = s.studentNumber group by s.studentSex
+    </select>
+    <!-- 按性别返回数据（个人和团队） -->
+    <select id="adminStatisticsSexGet" resultType="java.util.HashMap">
+        select s.studentSex, COUNT(s.studentSex) as number
+        from student s, score_student st
+        where s.studentNumber = st.studentNumber GROUP BY s.studentSex
+        union
+        select s.studentSex,count(s.studentSex) as number
+        from student s, team_student ts, score_team st
+        where ts.teamId = st.teamId and ts.studentNumber = s.studentNumber group by s.studentSex
+    </select>
+
+    <!-- 按学院返回数据（个人） -->
+    <select id="adminStatisticsCollegePersonGet" resultType="java.util.HashMap">
+        select s.studentCollege, count(s.studentCollege) as number
+        from student s, score_student st
+        where s.studentNumber = st.studentNumber group by s.studentNumber
+    </select>
+    <!-- 按学院返回数据（团队） -->
+    <select id="adminStatisticsCollegeTeamGet" resultType="java.util.HashMap">
+        select s.studentCollege,count(s.studentCollege) as number
+        from student s, team_student ts, score_team st
+        where ts.teamId = st.teamId and ts.studentNumber = s.studentNumber group by s.studentCollege
+    </select>
+    <!-- 按学院返回数据（个人和团队） -->
+    <select id="adminStatisticsCollegeGet" resultType="java.util.HashMap">
+        select s.studentCollege, count(s.studentCollege) as number
+        from student s, score_student st
+        where s.studentNumber = st.studentNumber group by s.studentNumber
+        union
+        select s.studentCollege,count(s.studentCollege) as number
+        from student s, team_student ts, score_team st
+        where ts.teamId = st.teamId and ts.studentNumber = s.studentNumber group by s.studentCollege
+    </select>
+
+    <!-- 按年级返回数据（个人） -->
+    <select id="adminStatisticsGradePersonGet" resultType="java.util.HashMap">
+        select s.studentGrade, count(s.studentGrade) as number
+        from student s, score_student ss
+        where s.studentNumber = ss.studentNumber group by s.studentGrade
+    </select>
+    <!-- 按年级返回数据（团队） -->
+    <select id="adminStatisticsGradeTeamGet" resultType="java.util.HashMap">
+        select s.studentGrade, count(s.studentGrade) as number
+        from student s, score_team ss, team_student ts
+        where s.studentNumber = ts.studentNumber and ss.teamId = ts.teamId
+        group by s.studentGrade
+    </select>
+    <!-- 按年级返回数据（个人和团队） -->
+    <select id="adminStatisticsGradeGet" resultType="java.util.HashMap">
+        select s.studentGrade, count(s.studentGrade) as number
+        from student s, score_student ss
+        where s.studentNumber = ss.studentNumber group by s.studentGrade
+        union
+        select s.studentGrade, count(s.studentGrade) as number
+        from student s, score_team ss, team_student ts
+        where s.studentNumber = ts.studentNumber and ss.teamId = ts.teamId
+        group by s.studentGrade
+    </select>
+
+    <!--  按班级返回数据（个人） -->
+    <select id="adminStatisticsClassPersonGet" resultType="java.util.HashMap">
+        select s.studentClass, count(s.studentClass) as number
+        from student s, score_student ss
+        where s.studentNumber = ss.studentNumber group by s.studentClass
+    </select>
+    <!--  按班级返回数据（团队） -->
+    <select id="adminStatisticsClassTeamGet" resultType="java.util.HashMap">
+        select s.studentClass, count(s.studentClass) as number
+        from student s, score_team ss, team_student ts
+        where s.studentNumber = ts.studentNumber and ss.teamId = ts.teamId
+        group by s.studentClass
+    </select>
+    <!--  按班级返回数据（个人和团队） -->
+    <select id="adminStatisticsClassGet" resultType="java.util.HashMap">
+        select s.studentClass, count(s.studentClass) as number
+        from student s, score_student ss
+        where s.studentNumber = ss.studentNumber group by s.studentClass
+        union
+        select s.studentClass, count(s.studentClass) as number
+        from student s, score_team ss, team_student ts
+        where s.studentNumber = ts.studentNumber and ss.teamId = ts.teamId
+        group by s.studentClass
+    </select>
+
+    <!-- 按年级和班级返回数据（个人） -->
+    <select id="adminStatisticsGradeAndClassPersonGet" resultType="java.util.HashMap">
+        select s.studentClass, count(studentClass) as number, s.studentGrade
+        from student s, score_student ss
+        where s.studentNumber = ss.studentNumber group by s.studentClass, s.studentGrade
+    </select>
+    <!-- 按年级和班级返回数据（团队） -->
+    <select id="adminStatisticsGradeAndClassTeamGet" resultType="java.util.HashMap">
+        select s.studentClass, count(s.studentClass) as number, s.studentGrade
+        from student s, score_team ss, team_student ts
+        where s.studentNumber = ts.studentNumber and ss.teamId = ts.teamId
+        group by s.studentClass, s.studentGrade
+    </select>
+    <!-- 按年级和班级返回数据（个人和团队） -->
+    <select id="adminStatisticsGradeAndClassGet" resultType="java.util.HashMap">
+        select s.studentClass, count(*) as number,  s.studentGrade
+        from student s, score_student ss
+        where s.studentNumber = ss.studentNumber group by s.studentClass, s.studentGrade
+        union
+        select s.studentClass, count(s.studentClass) as number, s.studentGrade
+        from student s, score_team ss, team_student ts
+        where s.studentNumber = ts.studentNumber and ss.teamId = ts.teamId
+        group by s.studentClass, s.studentGrade
+    </select>
+
+    <!-- 获取管理员信息 -->
+    <select id="adminAdminsGet" parameterType="string" resultType="admin">
+        select * from admins where username = #{username}
+    </select>
+
+    <!-- 更新管理员信息 -->
+    <update id="adminAdminsPut" parameterType="admin">
+        update admins set username = #{username}, password = #{password}, email = #{email}, emailPassword = #{emailPassword}
+        where username = #{username}
+    </update>
+
+    <!-- 添加管理员 -->
+    <insert id="adminAdminsPost" parameterType="admin">
+        insert into admins (username, password, email, emailPassword) values (#{username}, #{password}, #{email}, #{emailPassword});
+    </insert>
+
+    <!-- 管理员邮箱更新 -->
+    <update id="adminAdminEmailPut" parameterType="admin">
+        update admins set email = #{email}, emailPassword = #{emailPassword} where username = #{username} and password = #{password}
+    </update>
+
+    <!-- 管理员密码更新 -->
+    <update id="adminAdminsPasswordPut" parameterType="admin">
+        update admins set password = #{password} where username = #{username} and email = #{email} and emailPassword = #{emailPassword}
+    </update>
+
+
+</mapper>

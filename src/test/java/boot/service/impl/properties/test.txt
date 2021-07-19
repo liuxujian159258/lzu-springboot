@@ -1,0 +1,5 @@
+my_class
+id,Long
+name,String
+date,String
+room,String

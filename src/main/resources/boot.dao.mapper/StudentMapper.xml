@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="boot.dao.StudentDao">
+
+    <!-- 查询满足条件的所有用户 -->
+    <select id="findAllStudent" resultType="student">
+        select * from student where 1=1
+        <if test="studentSex !=null">
+            and studentSex = #{studentSex}
+        </if>
+        <if test="studentCollege != null and studentCollege != ''">
+            and studentCollege = #{studentCollege}
+        </if>
+        <if test="studentClass !=null and studentClass != ''">
+            and studentClass = #{studentClass}
+        </if>
+        <if test="studentGrade != null">
+            and studentGrade = #{studentGrade}
+        </if>
+    </select>
+
+    <!-- 根据学号或者姓名查询用户 -->
+    <select id="findStudentByStudentNumberOrName" resultType="student">
+        select * from student where 1=1
+        <if test="studentNumber != null">
+            and studentNumber like CONCAT('%', #{studentNumber}, '%')
+        </if>
+        <if test="studentName != null">
+            and studentName like CONCAT('%', #{studentName}, '%')
+        </if>
+    </select>
+
+    <!-- 根据学号删除用户 -->
+    <delete id="deleteStudentByStudentNumber">
+        delete from student where studentNumber = #{studentNumber}
+    </delete>
+
+    <!-- 用户更新 -->
+    <update id="updateStudent" parameterType="student">
+        update student set studentPassword = #{studentPassword}, studentName = #{studentName}, studentSex = #{studentSex}, studentCollege = #{studentCollege}, studentClass = #{studentClass}, studentGrade = #{studentGrade},
+        studentEmail = #{studentEmail}, studentPhone = #{studentPhone}
+        where studentNumber = #{studentNumber}
+    </update>
+
+    <!-- 用户添加 -->
+    <insert id="addStudent" parameterType="student">
+        insert into student (studentNumber, studentPassword, studentName, studentSex, studentCollege, studentClass, studentGrade, studentEmail, studentPhone)
+        values (#{studentNumber}, #{studentPassword}, #{studentName}, #{studentSex}, #{studentCollege}, #{studentClass}, #{studentGrade}, #{studentEmail}, #{studentPhone});
+    </insert>
+
+    <!-- 判断数据库中是否已经有此用户 -->
+    <select id="existStudent" resultType="string">
+        select studentPassword from student where studentNumber = #{studentNumber} and studentPassword = #{studentPassword}
+    </select>
+
+    <!--  密码更新，即修改了学校的邮箱密码  -->
+    <update id="updateStudentPassword">
+        update student set studentPassword = #{studentPassword}
+        where studentNumber = #{studentNumber}
+    </update>
+
+    <!-- 信息完善接口 -->
+    <update id="studentInformationsPut" parameterType="student">
+        update student set studentClass = #{studentClass}, studentGrade = #{studentGrade}, studentEmail = #{studentEmail}, studentPhone = #{studentPhone}
+        where studentNumber = #{studentNumber}
+    </update>
+
+    <!-- 获取学生用户信息 -->
+    <select id="studentInformationGet" parameterType="string" resultType="student">
+        select studentNumber, studentName, studentSex, studentCollege, studentClass, studentGrade, studentEmail, studentPhone
+        from student where studentNumber = #{studentNumber}
+    </select>
+
+    <!-- 获取学生邮箱 -->
+    <select id="studentEmailGet" resultType="string" parameterType="string">
+        select studentEmail from student where studentNumber = #{studentNumber}
+    </select>
+    <!-- 获取竞赛报名模板 -->
+    <select id="competitionEmailGet" parameterType="int" resultType="competitionEmail">
+        select * from competition_email where competitionId = #{competitionId}
+    </select>
+
+    <!-- 获取所有满足条件的竞赛 -->
+    <select id="studentCompetitionsGet" resultType="java.util.HashMap">
+        select competitionId, competitionName, competitionDepartment, competitionType, competitionPeople
+        from competition where isDelete = 0
+        <if test="competitionType != null">
+            and competitionType = #{competitionType}
+        </if>
+        <if test="competitionId != null">
+            and competitionId = #{competitionId}
+        </if>
+    </select>
+    <!--  获取具有html的所有竞赛信息  -->
+    <select id="studentCompetitionsGetAll" resultType="boot.vo.admin.CompetitionsHtmlVO">
+        select c.competitionId, c.competitionName, c.competitionType, c.competitionPeople, c.competitionDepartment, c.isDelete, ch.competitionHtml
+        from competition c left join competition_html ch
+        on c.competitionId = ch.competitionId
+        where c.isDelete = 0
+    </select>
+    <!-- 判断是否是队长 -->
+    <select id="isTeamCaptain" resultType="string">
+        select studentNumber
+        from team_student
+        where isCaptain = 1 and teamId = #{teamId}
+        and team_student.studentNumber = (select studentNumber from student where studentNumber = #{studentNumber})
+    </select>
+
+    <!-- 判断团队是否解散或者不存在 -->
+    <select id="teamExistOrDismiss" parameterType="int" resultType="int">
+        select 1 from team where teamId = #{teamId} and teamDismiss = 0
+    </select>
+    <!-- 判断团队人数和竞赛人数 -->
+    <select id="teamPeopleAndCompetitionPeople" resultType="int">
+        select teamId from competition c, team t
+        where c.competitionPeople = t.teamPeople and competitionId = #{competitionId} and teamId = #{teamId}
+    </select>
+
+    <!-- 单人竞赛报名 -->
+    <insert id="studentSignUpPerson" parameterType="scoreStudent">
+        insert into score_student (studentNumber, competitionId, competitionName, studentScore, studentTime)
+        values (#{studentNumber}, #{competitionId},#{competitionName}, #{studentScore}, #{studentTime});
+    </insert>
+
+    <!-- 团队竞赛报名 -->
+    <insert id="studentSignUpTeam" parameterType="scoreTeam">
+        insert into score_team (teamId, competitionId,competitionName, teamScore, teamTime)
+        values (#{teamId}, #{competitionId},#{competitionName}, #{teamScore}, #{teamTime});
+    </insert>
+
+    <!-- 个人取消报名 -->
+    <delete id="studentCancelPerson">
+        delete from score_student where studentNumber = #{studentNumber} and competitionId = #{competitionId} and studentTime = #{studentTime}
+    </delete>
+
+    <!-- 团队取消报名 -->
+    <delete id="studentCancelTeam">
+        delete from score_team where teamId = #{teamId} and competitionId = #{competitionId} and teamTime = #{teamTime}
+    </delete>
+
+    <!-- 个人成绩查看 -->
+    <select id="studentScoresStudentNumberGet" parameterType="string" resultMap="StudentsScoreVOMap">
+        select s.studentNumber, s.studentName, s.studentCollege, s.studentClass, ss.studentTime, ss.competitionId, ss.competitionName, ss.studentScore
+        from student s, score_student ss
+        where s.studentNumber = ss.studentNumber and s.studentNumber = #{studentNumber}
+    </select>
+    <resultMap id="StudentsScoreVOMap" type="boot.vo.student.StudentsScoreVO">
+        <id property="studentNumber" column="studentNumber"/>
+        <id property="studentTime" column="studentTime"/>
+        <result property="studentName" column="studentName"/>
+        <result property="studentCollege" column="studentCollege"/>
+        <result property="studentClass" column="studentClass"/>
+        <collection property="competitions" ofType="boot.vo.student.CompetitionsScoreVO">
+            <id property="competitionId" column="competitionId"/>
+            <result property="competitionName" column="competitionName"/>
+            <result property="competitionScore" column="studentScore"/>
+        </collection>
+    </resultMap>
+
+    <!-- 团队成绩查看 -->
+    <select id="studentTeamsScoresStudentNumberGet" parameterType="string" resultMap="TeamsScoreVOMap">
+        select t.teamId, t.teamName, t.teamCollege, st.teamTime, ts.isCaptain, st.competitionId, st.competitionName, st.teamScore
+        from team t, team_student ts, score_team st
+        where t.teamId = ts.teamId and t.teamId = st.teamId and t.teamDismiss = 0 and ts.studentNumber = #{studentNumber}
+    </select>
+    <resultMap id="TeamsScoreVOMap" type="boot.vo.student.TeamsScoreVO">
+        <id property="teamId" column="teamId"/>
+        <id property="teamTime" column="teamTime"/>
+        <result property="teamName" column="teamName"/>
+        <result property="teamCollege" column="teamCollege"/>
+        <result property="isCaptain" column="isCaptain"/>
+        <collection property="competitions" ofType="boot.vo.student.CompetitionsScoreVO">
+            <id property="competitionId" column="competitionId"/>
+            <result property="competitionName" column="competitionName"/>
+            <result property="competitionScore" column="teamScore"/>
+        </collection>
+    </resultMap>
+
+    <!-- 获取管理的团队信息 -->
+    <select id="studentTeamsMyTeams" resultMap="StudentsMyTeamsVOMap">
+        select t.teamId, t.teamName, t.teamCollege, t.teamDismiss, s.studentNumber, s.studentName, s.studentCollege, s.studentClass,  s.studentEmail, s.studentPhone
+        from team t, team_student ts, student s
+        where t.teamId = ts.teamId and s.studentNumber = ts.studentNumber and ts.isCaptain = 0
+        and t.teamId in
+				(select ts.teamId from team_student ts where ts.studentNumber = #{studentNumber} and ts.isCaptain = 1)
+    </select>
+    <resultMap id="StudentsMyTeamsVOMap" type="boot.vo.student.StudentsMyTeamsVO">
+        <id property="teamId" column="teamId"/>
+        <result property="teamName" column="teamName"/>
+        <result property="teamCollege" column="teamCollege"/>
+        <result property="teamDismiss" column="teamDismiss"/>
+        <collection property="teamsStudent" ofType="boot.vo.student.StudentsMyTeamsStudentsVO">
+            <id property="studentNumber" column="studentNumber"/>
+            <result property="studentName" column="studentName"/>
+            <result property="studentCollege" column="studentCollege"/>
+            <result property="studentClass" column="studentClass"/>
+            <result property="studentEmail" column="studentEmail"/>
+            <result property="studentPhone" column="studentPhone"/>
+        </collection>
+    </resultMap>
+
+    <!-- 获取学生姓名 -->
+    <select id="studentNameByStudentNumber" resultType="string" parameterType="string">
+        select studentName from student where studentNumber = #{studentNumber}
+    </select>
+    <!-- 获取加入的团队信息 -->
+    <select id="studentTeamsMyJionTeams" resultType="boot.vo.student.StudentsMyJionTeamsVO">
+        select t.teamId, t.teamName, ts.studentName as teamCaptain, t.teamCollege, t.teamDismiss from team t, team_student ts
+        where t.teamId = ts.teamId and ts.isCaptain = 1
+        and t.teamId  in ( select t.teamId from team t, team_student ts where t.teamId = ts.teamId and ts.isCaptain = 0 and ts.studentNumber = #{studentNumber})
+    </select>
+
+    <!-- 移除团队队长 -->
+    <update id="removeTeamCaptain">
+        update team_student set isCaptain = 0 where teamId = #{teamId} and studentNumber = #{studentNumber}
+    </update>
+    <!-- 队长提升 -->
+    <update id="addTeamCaptain">
+        update team_student set isCaptain = 1 where teamId = #{teamId} and studentNumber = #{captainStudentNumber}
+    </update>
+
+    <!-- 队员移除 -->
+    <delete id="studentTeamsStudentsDelete">
+        delete from team_student where teamId = #{teamId} and studentNumber = #{studentNumber}
+    </delete>
+
+    <!-- 团队解散 -->
+    <update id="studentTeamsDelete" parameterType="int">
+        update team set teamDismiss = 1 where teamId = #{teamId}
+    </update>
+
+    <!-- 修改团队信息 -->
+    <update id="studentTeamsPut">
+        update team set teamName = #{teamName}, teamCollege = #{teamCollege} where teamId = #{teamId}
+    </update>
+
+</mapper>

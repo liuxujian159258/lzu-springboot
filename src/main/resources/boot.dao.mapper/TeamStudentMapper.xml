@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="boot.dao.TeamStudentDao">
+    <!-- 查询满足条件的所有成员 -->
+    <select id="findAllTeamStudent" parameterType="int" resultType="teamStudent">
+        select * from team_student where teamId = #{teamId};
+    </select>
+
+    <!-- 根据teamId，studentNumber删除团队成员 -->
+    <delete id="deleteByTeamIdStudentNumber">
+        delete from team_student where 1=1
+        <if test="teamId != null">
+            and teamId = #{teamId}
+        </if>
+        <if test="studentNumber != null and studentNumber != ''">
+            and studentNumber = #{studentNumber}
+        </if>
+    </delete>
+
+    <!-- 添加团队成员 -->
+    <insert id="addTeamStudent" parameterType="teamStudent">
+        insert into team_student (teamId, studentNumber, studentName, isCaptain) values (#{teamId}, #{studentNumber},#{studentName}, #{isCaptain})
+    </insert>
+    <!-- 更新团队 -->
+    <update id="updateTeamStudent" parameterType="teamStudent">
+        update team_student set isCaptain = #{isCaptain}
+        where teamId = #{teamId} and studentNumber = #{studentNumber}
+    </update>
+
+    <!-- 去除团队队长 -->
+    <update id="removeCaptain" parameterType="int">
+        update team_student set isCaptain = 0 where teamId = #{teamId}
+    </update>
+    <!-- 提升为队长 -->
+    <update id="studentCaptain">
+        update team_student set isCaptain = 1 where teamId = #{teamId} and studentNumber = #{studentNumber}
+    </update>
+</mapper>

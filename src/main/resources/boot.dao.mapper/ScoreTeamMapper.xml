@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="boot.dao.ScoreTeamDao">
+
+    <!-- 查询满足条件的所有团队成绩 -->
+    <select id="findAllScoreTeam" resultType="scoreTeam">
+        select * from score_team where 1=1
+        <if test="teamId !=null">
+            and teamId = #{teamId}
+        </if>
+        <if test="competitionId !=null">
+            and competitionId = #{competitionId}
+        </if>
+        <if test="teamTime !=null">
+            and teamTime = #{teamTime}
+        </if>
+    </select>
+
+    <!-- 根据团队Id，竞赛Id，竞赛时间删除成绩 -->
+    <delete id="deleteByTeamIdCompetitionIdTeamTime">
+        delete from score_team where 1=1
+        <if test="teamId !=null">
+            and teamId = #{teamId}
+        </if>
+        <if test="competitionId !=null">
+            and competitionId = #{competitionId}
+        </if>
+        <if test="teamTime !=null">
+            and teamTime = #{teamTime}
+        </if>
+    </delete>
+
+    <!-- 添加团队成绩 -->
+    <insert id="addTeamScore" parameterType="scoreTeam">
+        insert into score_team (teamId, competitionId,competitionName, teamScore, teamTime)
+        values (#{teamId}, #{competitionId},#{competitionName}, #{teamScore}, #{teamTime});
+    </insert>
+
+    <!-- 更新团队成绩 -->
+    <update id="updateTeamScore" parameterType="scoreTeam">
+        update score_team set teamScore = #{teamScore}
+        where teamId = #{teamId} and competitionId = #{competitionId} and teamTime = #{teamTime}
+    </update>
+</mapper>

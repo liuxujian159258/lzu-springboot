@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="boot.dao.CompetitionDao">
+
+    <!-- 查询满足条件的所有竞赛 -->
+    <select id="findAllCompetition" parameterType="int" resultType="competition">
+        select * from competition where competitionType = #{competitionType}
+    </select>
+
+    <!-- 根据竞赛id或者名称查询竞赛 -->
+    <select id="findCompetitionByCompetitionIdOrCompetitionName" resultType="competition">
+        select * from competition where 1=1
+        <if test="competitionName !=null and competitionName != ''">
+            and competitionName like CONCAT('%', #{competitionName}, '%')
+        </if>
+        <if test="competitionId != null">
+            and competitionId = #{competitionId}
+        </if>
+    </select>
+
+    <!-- 根据竞赛Id删除竞赛 -->
+    <delete id="deleteByCompetitionId" parameterType="int">
+        delete from competition where CompetitionId = #{CompetitionId}
+    </delete>
+
+    <!-- 添加竞赛 -->
+    <insert id="addCompetition" parameterType="competition">
+        <selectKey keyProperty="competitionId" resultType="int" order="BEFORE">
+            select last_insert_id()
+        </selectKey>
+        insert into competition (competitionId, competitionName, competitionType, competitionPeople, competitionDepartment, isDelete)
+        values (#{competitionId}, #{competitionName}, #{competitionType}, #{competitionPeople}, #{competitionDepartment}, #{isDelete})
+    </insert>
+
+    <!-- 根据竞赛Id更新竞赛 -->
+    <update id="updateCompetition" parameterType="competition">
+        update competition set competitionName = #{competitionName},
+        competitionType = #{competitionType}, competitionPeople = #{competitionPeople}, competitionDepartment = #{competitionDepartment},isDelete = #{isDelete}
+        where competitionId = #{competitionId}
+    </update>
+</mapper>

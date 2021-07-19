@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="boot.dao.TeamDao">
+    <!-- 查询满足条件的所有团队 -->
+    <select id="findAllTeam" resultType="team">
+        select * from team;
+    </select>
+
+    <!-- 根据团队编号或者团队名称查询或者团队注册学院 -->
+    <select id="findTeamByTeamIdOrName" resultType="team">
+        select * from team where 1=1
+        <if test="teamId != null">
+            and teamId = #{teamId}
+        </if>
+        <if test="teamName != null and teamName != ''">
+            and teamName like CONCAT('%', #{teamName}, '%')
+        </if>
+        <if test="teamCaptain !=null and teamCatain != ''">
+            and teamCaptain like CONCAT('%', #{teamName}, '%')
+        </if>;
+    </select>
+
+    <!-- 根据团队编号删除团队 -->
+    <delete id="deleteTeamByTeamId" parameterType="int">
+        delete from team where teamId = #{teamId}
+    </delete>
+
+    <!-- 用户注册新团队 -->
+    <insert id="addTeam" parameterType="team">
+        <selectKey keyProperty="teamId" resultType="int" order="BEFORE">
+            select last_insert_id()
+        </selectKey>
+        insert into team (teamId, teamName, teamCollege, teamDismiss)
+        values (#{teamId}, #{teamName}, #{teamCollege}, #{teamDismiss})
+    </insert>
+
+    <!-- 根据团队Id修改团队信息 -->
+    <update id="updateTeam" parameterType="team">
+        update team set teamName = #{teamName} and teamCollege = # {teamCollege} where teamId = #{teamId}
+    </update>
+
+    <!-- 判断团队是否存在 -->
+    <select id="existTeam" parameterType="string" resultType="team">
+        select * from team where teamName = #{teamName}
+    </select>
+</mapper>
